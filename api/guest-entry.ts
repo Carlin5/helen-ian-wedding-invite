@@ -28,6 +28,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (name.length > 120) return res.status(400).json({ error: 'Name must be 120 characters or fewer.' })
 
     const email = text(body.email)
+    if (email.length > 254) {
+      return res.status(400).json({ error: 'Email must be 254 characters or fewer.' })
+    }
     if (email && !emailPattern.test(email)) {
       return res.status(400).json({ error: 'Please check the email address.' })
     }
@@ -36,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (phone.length > 40) return res.status(400).json({ error: 'Phone number must be 40 characters or fewer.' })
 
     const dialCode = text(body.dialCode)
-    if (dialCode && !dialCodePattern.test(dialCode)) {
+    if (dialCode.length > 8 || (dialCode && !dialCodePattern.test(dialCode))) {
       return res.status(400).json({ error: 'Please check the country dial code.' })
     }
 

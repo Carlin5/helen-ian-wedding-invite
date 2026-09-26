@@ -2,7 +2,9 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import type { VercelRequest } from '@vercel/node'
 
 function secret() {
-  return process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || 'helen-ian-admin'
+  const s = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD
+  if (!s) throw new Error('Admin access is not configured')
+  return s
 }
 
 function signature(expiry: number) {

@@ -11,6 +11,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res)
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
+  if (!process.env.ADMIN_SECRET && !process.env.ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin access is not configured' })
+  }
   if (!verifyToken(req)) return res.status(401).json({ error: 'Unauthorized' })
 
   try {
