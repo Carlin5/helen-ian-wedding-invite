@@ -45,8 +45,8 @@ const dialCodes = [
   ['🇳🇿', '+64', 'New Zealand'],
 ] as const
 
-const input =
-  'w-full border border-neutral-300 bg-white px-4 py-3 text-sm outline-none focus:border-black'
+const field = 'border border-neutral-300 bg-white px-4 py-3 text-sm outline-none focus:border-black'
+const input = `w-full ${field}`
 const label = 'mb-1 block text-[11px] uppercase tracking-[0.15em] text-neutral-500'
 
 export default function Rsvp() {
@@ -143,7 +143,7 @@ export default function Rsvp() {
                 <div className="flex gap-2">
                   <select
                     aria-label="Country dial code"
-                    className={`${input} w-32 shrink-0`}
+                    className={`${field} w-[7.5rem] shrink-0 pr-8`}
                     value={dialCode}
                     onChange={(e) => setDialCode(e.target.value)}
                   >
@@ -155,7 +155,7 @@ export default function Rsvp() {
                   </select>
                   <input
                     id="phone"
-                    className={input}
+                    className={`${input} min-w-0 flex-1`}
                     placeholder="7700 000000"
                     maxLength={40}
                     value={phone}
