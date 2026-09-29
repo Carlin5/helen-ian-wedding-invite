@@ -9,4 +9,16 @@ export type GuestEntry = {
   attending: 'yes' | 'no'
   note: string
   country: string
+  inviteLabel?: string
+}
+
+export type Invite = {
+  id: string
+  code: string
+  label: string
+  createdAt: string
+  claimedAt: string | null
+  deviceId: string | null
+  revokedAt: string | null
+  resets: number
 }

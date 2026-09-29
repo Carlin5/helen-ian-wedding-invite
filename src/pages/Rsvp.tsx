@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useInvite } from '../lib/invite-context'
+import { deviceId, getCode } from '../lib/invite'
 
 const dialCodes = [
   ['🇬🇧', '+44', 'United Kingdom'],
@@ -52,7 +54,8 @@ const label = 'mb-1 block text-[11px] uppercase tracking-[0.15em] text-neutral-5
 export default function Rsvp() {
   const [params] = useSearchParams()
   const initial = params.get('attending') === 'no' ? 'no' : params.get('attending') === 'yes' ? 'yes' : ''
-  const [name, setName] = useState('')
+  const { label: inviteLabel } = useInvite()
+  const [name, setName] = useState(inviteLabel)
   const [email, setEmail] = useState('')
   const [dialCode, setDialCode] = useState('+44')
   const [phone, setPhone] = useState('')
@@ -71,7 +74,17 @@ export default function Rsvp() {
       const res = await fetch('/api/guest-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, dialCode, isChild, attending, note }),
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          dialCode,
+          isChild,
+          attending,
+          note,
+          code: getCode(),
+          deviceId: deviceId(),
+        }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
