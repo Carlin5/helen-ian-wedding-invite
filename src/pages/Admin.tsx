@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import type { GuestEntry } from '../types'
+import type { GuestEntry, Invite } from '../types'
 
 const TOKEN_KEY = 'helen-ian-admin-token'
 
@@ -27,6 +27,22 @@ export default function Admin() {
   const [totals, setTotals] = useState<Totals | null>(null)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [invites, setInvites] = useState<Invite[]>([])
+  const [newLabel, setNewLabel] = useState('')
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [copiedId, setCopiedId] = useState('')
+
+  const loadInvites = async (t: string) => {
+    try {
+      const res = await fetch('/api/admin/invites', {
+        headers: { Authorization: `Bearer ${t}` },
+      })
+      const data = (await res.json().catch(() => ({}))) as { invites?: Invite[] }
+      if (res.ok) setInvites(data.invites || [])
+    } catch {
+      // invite list is best-effort; errors surface on mutations
+    }
+  }
 
   const load = async (t: string) => {
     setLoading(true)
@@ -51,6 +67,7 @@ export default function Admin() {
       }
       setGuests(data.guests || [])
       setTotals(data.totals || null)
+      void loadInvites(t)
     } catch {
       setError('Could not load guests')
     } finally {
@@ -86,6 +103,73 @@ export default function Admin() {
     } catch {
       setError('Login failed')
     }
+  }
+
+  const createInvite = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!newLabel.trim()) return
+    setInviteBusy(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ label: newLabel.trim() }),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        setError(data.error || 'Could not create invite')
+        return
+      }
+      setNewLabel('')
+      void loadInvites(token)
+    } finally {
+      setInviteBusy(false)
+    }
+  }
+
+  const patchInvite = async (id: string, action: 'reset' | 'revoke' | 'unrevoke') => {
+    const res = await fetch('/api/admin/invites', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id, action }),
+    })
+    if (!res.ok) {
+      setError('Could not update invite')
+      return
+    }
+    void loadInvites(token)
+  }
+
+  const removeInvite = async (id: string) => {
+    if (!confirm('Delete this invite link?')) return
+    const res = await fetch('/api/admin/invites', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id }),
+    })
+    if (!res.ok) {
+      setError('Could not delete invite')
+      return
+    }
+    void loadInvites(token)
+  }
+
+  const copyLink = (invite: Invite) => {
+    const url = `${location.origin}/i/${invite.code}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(invite.id)
+      setTimeout(() => setCopiedId(''), 1500)
+    })
+  }
+
+  const inviteStatus = (invite: Invite) => {
+    const base = invite.revokedAt
+      ? 'Revoked'
+      : invite.claimedAt
+        ? `Opened ${new Date(invite.claimedAt).toLocaleDateString()}`
+        : 'Not opened yet'
+    return invite.resets > 0 ? `${base} · reset ×${invite.resets}` : base
   }
 
   const logout = () => {
@@ -190,6 +274,92 @@ export default function Admin() {
           ))}
         </div>
 
+        <section className="mt-8 border border-neutral-200 bg-white p-6">
+          <h2 className="font-serif text-xl">Invite links</h2>
+          <form onSubmit={createInvite} className="mt-4 flex flex-wrap gap-2">
+            <input
+              className={`${input} max-w-sm flex-1`}
+              placeholder="Guest / household name"
+              value={newLabel}
+              maxLength={120}
+              onChange={(e) => setNewLabel(e.target.value)}
+            />
+            <button type="submit" className={outlineBtn} disabled={inviteBusy}>
+              Create link
+            </button>
+          </form>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-neutral-200">
+                  {['Name', 'Link', 'Status', 'Actions'].map((h) => (
+                    <th key={h} className={`${label} px-4 py-3 font-medium`}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {invites.map((invite) => (
+                  <tr key={invite.id} className="border-b border-neutral-100 last:border-0">
+                    <td className="px-4 py-3">{invite.label}</td>
+                    <td className="px-4 py-3">
+                      <span className="mr-2 inline-block max-w-56 truncate align-middle text-neutral-500">
+                        {`${location.origin}/i/${invite.code}`}
+                      </span>
+                      <button
+                        className="text-[11px] uppercase tracking-[0.1em] underline"
+                        onClick={() => copyLink(invite)}
+                      >
+                        {copiedId === invite.id ? 'Copied' : 'Copy'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">{inviteStatus(invite)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {invite.claimedAt && (
+                        <button
+                          className="mr-3 text-[11px] uppercase tracking-[0.1em] underline"
+                          onClick={() => void patchInvite(invite.id, 'reset')}
+                        >
+                          Reset
+                        </button>
+                      )}
+                      {invite.revokedAt ? (
+                        <button
+                          className="mr-3 text-[11px] uppercase tracking-[0.1em] underline"
+                          onClick={() => void patchInvite(invite.id, 'unrevoke')}
+                        >
+                          Unrevoke
+                        </button>
+                      ) : (
+                        <button
+                          className="mr-3 text-[11px] uppercase tracking-[0.1em] underline"
+                          onClick={() => void patchInvite(invite.id, 'revoke')}
+                        >
+                          Revoke
+                        </button>
+                      )}
+                      <button
+                        className="text-[11px] uppercase tracking-[0.1em] text-red-700 underline"
+                        onClick={() => void removeInvite(invite.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!invites.length && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-neutral-400">
+                      No invite links yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <input
           className={`${input} mt-6 w-full max-w-sm`}
           placeholder="Search guests…"
@@ -201,7 +371,7 @@ export default function Admin() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-neutral-200">
-                {['Submitted', 'Name', 'Email', 'Phone', 'Child', 'Attending', 'Message', 'Country'].map(
+                {['Submitted', 'Name', 'Email', 'Phone', 'Child', 'Attending', 'Message', 'Country', 'Invite'].map(
                   (h) => (
                     <th key={h} className={`${label} px-4 py-3 font-medium`}>
                       {h}
@@ -227,11 +397,12 @@ export default function Admin() {
                     {g.note}
                   </td>
                   <td className="px-4 py-3">{g.country}</td>
+                  <td className="px-4 py-3">{g.inviteLabel ?? ''}</td>
                 </tr>
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-neutral-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-neutral-400">
                     {loading ? 'Loading…' : 'No entries yet'}
                   </td>
                 </tr>

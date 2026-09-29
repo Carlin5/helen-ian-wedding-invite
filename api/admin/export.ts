@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const guests = await listGuests()
-    const header = 'Submitted,Name,Email,Phone,Dial Code,Child,Attending,Message,Country'
+    const header = 'Submitted,Name,Email,Phone,Dial Code,Child,Attending,Message,Country,Invite'
     const rows = guests.map((g) =>
       [
         g.submittedAt,
@@ -29,6 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         g.attending,
         g.note,
         g.country,
+        g.inviteLabel ?? '',
       ]
         .map(csvCell)
         .join(','),

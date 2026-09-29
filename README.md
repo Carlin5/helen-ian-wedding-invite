@@ -20,6 +20,10 @@ For the API locally, either:
 - run `vercel dev` (serves both the frontend and `api/` functions), or
 - run just `pnpm dev` — without `BLOB_READ_WRITE_TOKEN` set, submissions are stored in `data/guests.json` (local file fallback), but the API routes still need `vercel dev` (or any @vercel/node-compatible server) to be reachable.
 
+## Invite links
+
+The wedding is invite-only. The admin (`/admin`) creates a unique link per guest or household (`/i/<code>`) and copies it to send. The first device that opens a link locks it to that device — forwarded links show "Invalid invitation link". From the admin dashboard, links can be reset (release the device lock), revoked/unrevoked, or deleted. RSVPs are only accepted from a device holding a claimed link, and each guest entry records the invite label. Blob reads for invites use `useCache: false` so claim/reset/revoke changes are visible immediately (the Vercel Blob CDN cache is bypassed).
+
 ## Environment variables
 
 | Variable | Purpose |
