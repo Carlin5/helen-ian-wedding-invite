@@ -13,15 +13,19 @@ export default function RequireInvite({ children }: { children: ReactNode }) {
   useEffect(() => {
     const code = getCode()
     if (!code) return
-    if (sessionStorage.getItem(OK_KEY) === code) {
-      queueMicrotask(() => setState('ok'))
+    const cached = sessionStorage.getItem(OK_KEY)
+    if (cached?.startsWith(`${code}:`)) {
+      queueMicrotask(() => {
+        setLabel(cached.slice(code.length + 1))
+        setState('ok')
+      })
       return
     }
     let cancelled = false
     verify(code).then((result) => {
       if (cancelled) return
       if (result.ok) {
-        sessionStorage.setItem(OK_KEY, code)
+        sessionStorage.setItem(OK_KEY, `${code}:${result.label}`)
         setLabel(result.label)
         setState('ok')
       } else {
