@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getInviteByCode, saveInvite } from '../_lib/store.js'
+import { getInvite, saveInvite } from '../_lib/store.js'
 
 const deviceIdPattern = /^[A-Za-z0-9-]{8,64}$/
 
@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'invalid' })
     }
 
-    const invite = await getInviteByCode(code)
+    const invite = await getInvite(code)
     if (!invite || invite.revokedAt) return res.status(404).json({ error: 'invalid' })
 
     if (!invite.claimedAt) {

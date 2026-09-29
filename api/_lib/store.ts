@@ -91,11 +91,17 @@ export async function listGuests(): Promise<GuestEntry[]> {
   return readLocal<GuestEntry>(guestsFile)
 }
 
-export async function getInvite(id: string): Promise<Invite | null> {
+const inviteCodePattern = /^[A-Za-z0-9_-]{8,64}$/
+
+export async function getInvite(code: string): Promise<Invite | null> {
   assertConfigured()
+  if (!inviteCodePattern.test(code)) return null
   if (remote()) {
     try {
-      const response = await get(`${INVITES_PREFIX}${id}.json`, { access: 'private' })
+      const response = await get(`${INVITES_PREFIX}${code}.json`, {
+        access: 'private',
+        useCache: false,
+      })
       if (!response) return null
       const text = await new Response(response.stream).text()
       return JSON.parse(text) as Invite
@@ -104,7 +110,7 @@ export async function getInvite(id: string): Promise<Invite | null> {
     }
   }
   const invites = await readLocal<Invite>(invitesFile)
-  return invites.find((invite) => invite.id === id) ?? null
+  return invites.find((invite) => invite.code === code) ?? null
 }
 
 export async function listInvites(): Promise<Invite[]> {
@@ -116,7 +122,7 @@ export async function listInvites(): Promise<Invite[]> {
       const result = await list({ prefix: INVITES_PREFIX, ...(cursor ? { cursor } : {}) })
       for (const blob of result.blobs) {
         try {
-          const response = await get(blob.pathname, { access: 'private' })
+          const response = await get(blob.pathname, { access: 'private', useCache: false })
           if (!response) continue
           const text = await new Response(response.stream).text()
           invites.push(JSON.parse(text) as Invite)
@@ -134,15 +140,10 @@ export async function listInvites(): Promise<Invite[]> {
   return invites
 }
 
-export async function getInviteByCode(code: string): Promise<Invite | null> {
-  const invites = await listInvites()
-  return invites.find((invite) => invite.code === code) ?? null
-}
-
 export async function saveInvite(invite: Invite): Promise<void> {
   assertConfigured()
   if (remote()) {
-    await put(`${INVITES_PREFIX}${invite.id}.json`, JSON.stringify(invite), {
+    await put(`${INVITES_PREFIX}${invite.code}.json`, JSON.stringify(invite), {
       access: 'private',
       contentType: 'application/json',
       addRandomSuffix: false,
@@ -152,24 +153,24 @@ export async function saveInvite(invite: Invite): Promise<void> {
   }
   await withLock(async () => {
     const invites = await readLocal<Invite>(invitesFile)
-    const index = invites.findIndex((entry) => entry.id === invite.id)
+    const index = invites.findIndex((entry) => entry.code === invite.code)
     if (index === -1) invites.unshift(invite)
     else invites[index] = invite
     await writeLocal(invitesFile, invites)
   })
 }
 
-export async function deleteInvite(id: string): Promise<void> {
+export async function deleteInvite(code: string): Promise<void> {
   assertConfigured()
   if (remote()) {
-    await del(`${INVITES_PREFIX}${id}.json`)
+    await del(`${INVITES_PREFIX}${code}.json`)
     return
   }
   await withLock(async () => {
     const invites = await readLocal<Invite>(invitesFile)
     await writeLocal(
       invitesFile,
-      invites.filter((invite) => invite.id !== id),
+      invites.filter((invite) => invite.code !== code),
     )
   })
 }

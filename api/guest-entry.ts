@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getInviteByCode, saveGuest } from './_lib/store.js'
+import { getInvite, saveGuest } from './_lib/store.js'
 import type { GuestEntry } from '../src/types.js'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const code = text(body.code)
     const deviceId = text(body.deviceId)
-    const invite = code && deviceId ? await getInviteByCode(code) : null
+    const invite = code && deviceId ? await getInvite(code) : null
     if (!invite || invite.revokedAt || !invite.claimedAt || invite.deviceId !== deviceId) {
       return res.status(403).json({ error: 'Your invitation link is not valid on this device.' })
     }

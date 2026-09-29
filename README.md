@@ -22,7 +22,7 @@ For the API locally, either:
 
 ## Invite links
 
-The wedding is invite-only. The admin (`/admin`) creates a unique link per guest or household (`/i/<code>`) and copies it to send. The first device that opens a link locks it to that device — forwarded links show "Invalid invitation link". From the admin dashboard, links can be reset (release the device lock), revoked/unrevoked, or deleted. RSVPs are only accepted from a device holding a claimed link, and each guest entry records the invite label.
+The wedding is invite-only. The admin (`/admin`) creates a unique link per guest or household (`/i/<code>`) and copies it to send. The first device that opens a link locks it to that device — forwarded links show "Invalid invitation link". From the admin dashboard, links can be reset (release the device lock), revoked/unrevoked, or deleted. RSVPs are only accepted from a device holding a claimed link, and each guest entry records the invite label. Blob reads for invites use `useCache: false` so claim/reset/revoke changes are visible immediately (the Vercel Blob CDN cache is bypassed).
 
 ## Environment variables
 

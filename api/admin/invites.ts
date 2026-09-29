@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { verifyToken } from '../_lib/auth.js'
 import { deleteInvite, getInvite, listInvites, saveInvite } from '../_lib/store.js'
@@ -27,9 +27,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const name = typeof label === 'string' ? label.trim() : ''
       if (!name) return res.status(400).json({ error: 'Label is required' })
       if (name.length > 120) return res.status(400).json({ error: 'Label must be 120 characters or fewer' })
+      const code = randomBytes(15).toString('base64url')
       const invite: Invite = {
-        id: randomUUID(),
-        code: randomBytes(15).toString('base64url'),
+        id: code,
+        code,
         label: name,
         createdAt: new Date().toISOString(),
         claimedAt: null,

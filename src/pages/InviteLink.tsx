@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import InvalidInvite from '../components/InvalidInvite'
-import { OK_KEY, setCode, verify } from '../lib/invite'
+import { setCode, verify } from '../lib/invite'
 
 type State = 'pending' | 'invalid' | 'used'
 
@@ -17,7 +17,6 @@ export default function InviteLink() {
       if (cancelled) return
       if (result.ok) {
         setCode(code)
-        sessionStorage.setItem(OK_KEY, `${code}:${result.label}`)
         navigate('/', { replace: true })
       } else {
         setState(result.reason === 'used' ? 'used' : 'invalid')

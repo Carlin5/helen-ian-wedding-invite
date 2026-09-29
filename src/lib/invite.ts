@@ -1,6 +1,5 @@
 const DEVICE_KEY = 'helen-ian-device'
 const CODE_KEY = 'helen-ian-invite-code'
-export const OK_KEY = 'helen-ian-invite-ok'
 
 export function deviceId() {
   let id = localStorage.getItem(DEVICE_KEY)
